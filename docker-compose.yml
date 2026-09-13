@@ -1,0 +1,31 @@
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: fund_mock
+      MYSQL_USER: fund_mock
+      MYSQL_PASSWORD: fund_mock
+      MYSQL_ROOT_PASSWORD: root
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - fund_mock_mysql:/var/lib/mysql
+
+  mock-server:
+    build: .
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      FUND_MOCK_DATABASE_URL: mysql+pymysql://fund_mock:fund_mock@mysql:3306/fund_mock?charset=utf8mb4
+      FUND_MOCK_AUTO_CREATE_TABLES: "false"
+    command: ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+    ports:
+      - "8000:8000"
+
+volumes:
+  fund_mock_mysql:
+
